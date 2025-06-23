@@ -112,7 +112,7 @@ module.exports = function DefaultTemplate({
           text-align: right;
         }
         .signature-left {
-          margin-top: 80px;
+          margin-top: 60px;
           text-align: left;
           font-size: 14px;
           line-height: 1.6;
@@ -176,7 +176,7 @@ module.exports = function DefaultTemplate({
         <p><strong>Total:</strong> <b>${moneyFormat(currency, total)}</b></p>
       </div>
 
-      <!-- Signature (LEFT SIDE) -->
+      <!-- Signature (LEFT SIDE BELOW ITEMS) -->
       <div class="signature-left">
         <p><strong>Signature By</strong><br/>${companyName}</p>
       </div>

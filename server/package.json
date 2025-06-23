@@ -1,8 +1,13 @@
 {
   "name": "server",
   "version": "1.0.0",
-  "description": "",
+  "description": "PDF Invoice Generator backend using Express.js",
   "main": "index.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js"
+  },
   "dependencies": {
     "cors": "^2.8.5",
     "dotenv": "^16.0.3",
@@ -10,13 +15,9 @@
     "express-fileupload": "^1.2.1",
     "html-pdf": "^3.0.1"
   },
-  "scripts": {
-    "start": "nodemon index.js"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
   "devDependencies": {
     "nodemon": "^2.0.22"
-  }
+  },
+  "author": "Your Name",
+  "license": "MIT"
 }
