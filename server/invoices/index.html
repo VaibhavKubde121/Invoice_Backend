@@ -1,0 +1,208 @@
+const fs = require('fs');
+const path = require('path');
+const { moneyFormat } = require('../utils/index.js');
+
+const rootDir = path.resolve(__dirname, '../');
+
+module.exports = function DefaultTemplate({
+  details: {
+    currency,
+    companyLogo,
+    companyName = 'Ashok Disposal Store',
+    companyAddress = 'Vitoba Chowk Mainline,Hinganghat,442301',
+    invoiceNumber,
+    invoiceDate,
+    billingName = 'Customer',
+    billingPhone = '',
+    billingAddress = '',
+    shippingName = 'Rahul Gujar',
+    shippingAddress = 'Vitoba Chowk , Hinganghat',
+  },
+  lineItems,
+}) {
+  let logoBase64 = '';
+  const logoPath = path.join(rootDir, 'public', 'temp', 'company_logo.jpg');
+
+  try {
+    const imageBuffer = fs.readFileSync(logoPath);
+    const mimeType = logoPath.endsWith('.jpg') || logoPath.endsWith('.jpeg') ? 'image/jpeg' : 'image/png';
+    logoBase64 = `data:${mimeType};base64,${imageBuffer.toString('base64')}`;
+  } catch (e) {
+    console.warn('⚠️ Failed to load logo image. Check file path:', logoPath);
+    logoBase64 = '';
+  }
+
+  let itemsPurchased = '';
+  let total = 0;
+
+  lineItems.forEach((item) => {
+    const amount = Number(item.quantity || 0) * parseFloat(item.price || 0);
+    itemsPurchased += `
+      <tr>
+        <td>${item.description}</td>
+        <td>${item.quantity}</td>
+        <td>${moneyFormat(currency, item.price)}</td>
+        <td><b>${moneyFormat(currency, amount)}</b></td>
+      </tr>`;
+    total += amount;
+  });
+
+  return `<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Invoice Template</title>
+    <style>
+      body {
+        font-family: "Montserrat", sans-serif;
+        margin: 0;
+        padding: 0;
+        color: #333;
+      }
+
+      .container {
+        max-width: 300px;
+        margin: auto;
+        padding: 10px;
+        background: #fff;
+      }
+
+      .header-table,
+      .section-table,
+      .inner-table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      .logo {
+        max-width: 100px;
+        height: auto;
+        margin-bottom: 6px;
+      }
+
+      .header-left h1 {
+        margin: 6px 0 4px;
+        font-size: 20px;
+        font-weight: 500;
+      }
+
+      .header-left p,
+      .header-right p {
+        margin: 2px 0;
+        font-size: 12px;
+      }
+
+      .header-right {
+        text-align: right;
+        vertical-align: top;
+      }
+
+      .section-table th {
+        text-align: left;
+        padding-bottom: 4px;
+        font-size: 13px;
+      }
+
+      .section-table td {
+        padding-bottom: 8px;
+        font-size: 12px;
+        vertical-align: top;
+      }
+
+      .inner-table thead th,
+      .inner-table tbody td {
+        border: 1px solid #ccc;
+        padding: 6px;
+        text-align: left;
+        font-size: 12px;
+      }
+
+      .inner-table tbody tr:nth-child(even) {
+        background-color: #f2f2f2;
+      }
+
+      .totals {
+        float: right;
+        text-align: right;
+        margin-top: 15px;
+        font-size: 13px;
+      }
+
+      .totals p {
+        margin: 4px 0;
+        font-weight: bold;
+      }
+
+      .footer-note {
+        clear: both;
+        margin-top: 40px;
+        text-align: center;
+        font-size: 12px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="container">
+      <!-- Header -->
+      <table class="header-table">
+        <tr>
+          <td class="header-left">
+            <img class="logo" src="${logoBase64}" alt="Company Logo" />
+            <h1>${companyName}</h1>
+            <p>${companyAddress.split('/').join('<br />')}</p>
+          </td>
+          <td class="header-right">
+            <h2 style="margin: 0 0 5px">Invoice</h2>
+            <p><strong>No:</strong> ${invoiceNumber}</p>
+            <p><strong>Date:</strong> ${invoiceDate}</p>
+          </td>
+        </tr>
+      </table>
+
+      <!-- Billing / Shipping -->
+      <table class="section-table" style="margin-top: 20px">
+        <tr>
+          <td>
+            <p><strong>Name:</strong> ${billingName}</p>
+            <p><strong>Address:</strong><br />${billingAddress.split('/').join('<br />')}</p>
+            <p><strong>Phone:</strong> +91-${billingPhone}</p>
+          </td>
+          <td>
+            <p><strong>Name:</strong> ${shippingName}</p>
+            <p><strong>Address:</strong><br />${shippingAddress.split('/').join('<br />')}</p>
+            <p><strong>Phone:</strong> +91-9021816598</p>
+          </td>
+        </tr>
+      </table>
+
+      <!-- Items Table -->
+      <table class="inner-table" style="margin-top: 15px">
+        <thead>
+          <tr>
+            <th>Description</th>
+            <th>Qty.</th>
+            <th>Price</th>
+            <th>Amount</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${itemsPurchased}
+        </tbody>
+      </table>
+
+      <!-- Totals -->
+      <div class="totals">
+        <p>Subtotal: ${moneyFormat(currency, total)}</p>
+        <p>Total: ${moneyFormat(currency, total)}</p>
+      </div>
+
+      <!-- Footer Note -->
+      <div class="footer-note">
+        <p>Jay Shree Ram</p>
+      </div>
+    </div>
+  </body>
+</html>`;
+};
