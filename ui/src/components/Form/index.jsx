@@ -21,10 +21,10 @@ const COMPANY_INFO = {
 
 const ITEM_MAX_COUNT = 10;
 
-export default function Form({ onSubmit }) {
+export default function Form() {
   const [invoiceData, setInvoiceData] = useState({
     details: {
-      companyLogo: compLogo,
+      companyLogo: "", // Leave empty if not uploading file
       currency: DEFAULT_CURRENCY.code,
       invoiceNumber: "",
       invoiceDate: new Date().toISOString().substring(0, 10),
@@ -35,25 +35,23 @@ export default function Form({ onSubmit }) {
     lineItems: [{ quantity: 1, description: "", price: 0.0 }],
   });
 
-  const [isLoading, setIsLoading] = useState(false); // ✅ Loader state
-
-  const { companyLogo } = invoiceData.details;
+  const [isLoading, setIsLoading] = useState(false);
 
   const addLineItem = () => {
-    setInvoiceData((prevState) => ({
-      ...prevState,
+    setInvoiceData((prev) => ({
+      ...prev,
       lineItems: [
-        ...prevState.lineItems,
+        ...prev.lineItems,
         { quantity: 1, description: "", price: 0.0 },
       ],
     }));
   };
 
   const removeLineItem = (index) => {
-    const lineItems = [...invoiceData.lineItems];
-    if (lineItems.length === 1) return;
-    lineItems.splice(index, 1);
-    setInvoiceData((prevState) => ({ ...prevState, lineItems }));
+    const items = [...invoiceData.lineItems];
+    if (items.length === 1) return;
+    items.splice(index, 1);
+    setInvoiceData((prev) => ({ ...prev, lineItems: items }));
   };
 
   const handleOnchange = ({ target: { name, value } }, index) => {
@@ -71,7 +69,7 @@ export default function Form({ onSubmit }) {
 
   const handleOnSubmit = async (e) => {
     e.preventDefault();
-    setIsLoading(true); // Start loader
+    setIsLoading(true);
 
     const { billingName, billingPhone, billingAddress } = invoiceData.details;
 
@@ -95,10 +93,6 @@ export default function Form({ onSubmit }) {
 
     try {
       const formData = new FormData();
-      if (invoiceData.details.companyLogo) {
-        formData.append("companyLogo", invoiceData.details.companyLogo);
-      }
-
       formData.append("invoiceData", JSON.stringify(invoiceData));
 
       await axios.post(
@@ -109,27 +103,27 @@ export default function Form({ onSubmit }) {
         }
       );
 
-      try {
-        const downloadRes = await axios.get(
-          `${import.meta.env.VITE_APP_BACKEND_URI}/download`,
-          { responseType: "blob" }
-        );
-        const blob = new Blob([downloadRes.data], { type: "application/pdf" });
-        const url = window.URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.setAttribute("download", "invoice.pdf");
-        document.body.appendChild(link);
-        link.click();
-        link.parentNode.removeChild(link);
-        window.URL.revokeObjectURL(url);
-      } catch (downloadErr) {
-        alert("Invoice created, but failed to download PDF.");
-      }
+      const downloadRes = await axios.get(
+        `${import.meta.env.VITE_APP_BACKEND_URI}/download`,
+        { responseType: "blob" }
+      );
 
+      const blob = new Blob([downloadRes.data], { type: "application/pdf" });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", "invoice.pdf");
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error(err);
+      alert("Failed to generate invoice.");
+    } finally {
       setInvoiceData({
         details: {
-          companyLogo: compLogo,
+          companyLogo: "",
           currency: DEFAULT_CURRENCY.code,
           invoiceNumber: "",
           invoiceDate: new Date().toISOString().substring(0, 10),
@@ -139,11 +133,7 @@ export default function Form({ onSubmit }) {
         },
         lineItems: [{ quantity: 1, description: "", price: 0.0 }],
       });
-    } catch (err) {
-      console.error("Error:", err);
-      alert("Error creating invoice");
-    } finally {
-      setIsLoading(false); // Stop loader
+      setIsLoading(false);
     }
   };
 
@@ -152,21 +142,14 @@ export default function Form({ onSubmit }) {
       await axios.post(
         `${import.meta.env.VITE_APP_BACKEND_URI}/reset-invoice-count`
       );
-      alert("Invoice number has been reset to INV-0");
+      alert("Invoice number reset successfully.");
     } catch (err) {
-      alert("Failed to reset invoice number");
+      alert("Failed to reset invoice number.");
     }
   };
 
   const Loader = () => (
-    <div
-      style={{
-        textAlign: "center",
-        padding: "30px",
-        fontSize: "16px",
-        color: "#444",
-      }}
-    >
+    <div style={{ textAlign: "center", padding: "30px" }}>
       <div
         style={{
           display: "inline-block",
@@ -203,7 +186,7 @@ export default function Form({ onSubmit }) {
               <div className={styles.company_info}>
                 <img
                   className={styles.company_logo}
-                  src={companyLogo}
+                  src={compLogo}
                   alt="Company Logo"
                 />
                 <div className={styles.company_details}>
@@ -289,18 +272,14 @@ export default function Form({ onSubmit }) {
               {invoiceData.lineItems.map((item, index) => (
                 <div key={index} className={styles.item}>
                   <input
-                    data-tooltip-id={`input-${index}`}
-                    data-tooltip-content="Quantity"
                     type="number"
                     min="1"
                     name="quantity"
-                    placeholder="Quantity"
+                    placeholder="Qty"
                     value={item.quantity}
                     onChange={(e) => handleOnchange(e, index)}
                   />
                   <input
-                    data-tooltip-id={`input-${index}`}
-                    data-tooltip-content="Description"
                     type="text"
                     name="description"
                     placeholder="Description"
@@ -308,8 +287,6 @@ export default function Form({ onSubmit }) {
                     onChange={(e) => handleOnchange(e, index)}
                   />
                   <input
-                    data-tooltip-id={`input-${index}`}
-                    data-tooltip-content="Price"
                     type="number"
                     min="1"
                     step=".01"
@@ -336,7 +313,6 @@ export default function Form({ onSubmit }) {
             style={{
               display: "flex",
               justifyContent: "space-between",
-              gap: "10px",
               marginTop: "20px",
             }}
           >
